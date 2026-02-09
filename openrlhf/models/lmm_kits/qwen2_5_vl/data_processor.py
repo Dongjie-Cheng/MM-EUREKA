@@ -109,6 +109,12 @@ class Qwen2_5_VLDataProcessor(BaseDataProcessor):
             assert len(pixel_values) == 0
         return batch_kwargs
 
+    def get_vllm_mm_kwargs(self, **kwargs) -> Dict:
+        return {
+            "min_pixels": kwargs.get("min_pixels", 4 * 28 * 28),
+            "max_pixels": kwargs.get("max_pixels", 640 * 28 * 28),
+        }
+
 
 DataProcessor = Qwen2_5_VLDataProcessor
 
