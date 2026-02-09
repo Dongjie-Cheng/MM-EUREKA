@@ -82,6 +82,27 @@ class BaseDataProcessor(ABC):
         image_inputs, _ = process_vision_info(messages)
         return image_inputs
 
+    def get_vllm_mm_kwargs(self, **kwargs) -> Optional[Dict]:
+        return None
+
+    def build_vllm_inputs(self, messages: Union[Dict, List[str], str], **kwargs) -> List[Dict]:
+        message_items = messages if isinstance(messages, list) else [messages]
+        prompts = self.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        if isinstance(prompts, str):
+            prompts = [prompts]
+        images = [self.get_images_from_messages(m) for m in message_items]
+        mm_kwargs = self.get_vllm_mm_kwargs(**kwargs)
+        vllm_inputs = []
+        for prompt, imgs in zip(prompts, images):
+            vllm_input = {
+                "prompt": prompt,
+                "multi_modal_data": {"image": imgs} if imgs else None,
+            }
+            if mm_kwargs:
+                vllm_input["mm_processor_kwargs"] = mm_kwargs
+            vllm_inputs.append(vllm_input)
+        return vllm_inputs
+
     @property
     def pad_token_id(self) -> int:
         return self.processor.tokenizer.pad_token_id
