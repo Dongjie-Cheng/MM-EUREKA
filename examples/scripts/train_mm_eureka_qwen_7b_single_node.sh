@@ -5,6 +5,11 @@ export RAY_DASHBOARD_PORT=8265
 export NCCL_TIMEOUT=7200
 
 OUTPUT_DIR='/absolute/path/to/output/dir'
+CHAMELEON_MODEL_PATH='/path/to/chameleon-model-or-hf-id'
+# Chameleon image constraints (leave empty if not required, or set to match the processor limits).
+IMAGE_CONSTRAINT_FLAGS=""
+# Chameleon tokenizer usually supports fast tokenizers; add "--disable_fast_tokenizer" if needed.
+TOKENIZER_FLAGS=""
 
 export REWARD_LOG_PATH="${OUTPUT_DIR}/reward.log"
 export WORKING_DIR=$PWD
@@ -39,7 +44,7 @@ if [ "$NODE_RANK" -eq 0 ]; then
   --vllm_enable_sleep \
   --vllm_gpu_memory_utilization 0.3 \
   --vllm_sync_backend nccl \
-  --pretrain Qwen/Qwen2.5-VL-7B-Instruct \
+  --pretrain ${CHAMELEON_MODEL_PATH} \
   --save_path ${OUTPUT_DIR} \
   --micro_train_batch_size 2 \
   --train_batch_size 128 \
@@ -60,7 +65,8 @@ if [ "$NODE_RANK" -eq 0 ]; then
   --actor_learning_rate 1e-6 \
   --init_kl_coef 0.0 \
   --prompt_data /path/to/training/data \
-  --disable_fast_tokenizer \
+  ${IMAGE_CONSTRAINT_FLAGS} \
+  ${TOKENIZER_FLAGS} \
   --input_key message \
   --adam_offload \
   --flash_attn \
