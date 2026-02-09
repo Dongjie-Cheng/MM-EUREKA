@@ -2,11 +2,37 @@ from torch.utils.data import Dataset
 from tqdm import tqdm
 
 
-def preprocess_data(data, input_template=None, input_key="input", label_key="answer", apply_chat_template=None) -> str:
+def preprocess_data(
+    data,
+    input_template=None,
+    input_key="input",
+    label_key="answer",
+    apply_chat_template=None,
+    system_prompt=None,
+    image_key=None,
+) -> str:
     if apply_chat_template:
         chat = data[input_key]
         if isinstance(chat, str):
-            chat = [{"role": "user", "content": chat}]
+            if system_prompt or image_key:
+                messages = []
+                if system_prompt:
+                    messages.append(
+                        {
+                            "role": "system",
+                            "content": [{"type": "text", "text": system_prompt}],
+                        }
+                    )
+                user_content = []
+                if image_key:
+                    image = data.get(image_key)
+                    if image is not None:
+                        user_content.append({"type": "image", "image": image})
+                user_content.append({"type": "text", "text": chat})
+                messages.append({"role": "user", "content": user_content})
+                chat = messages
+            else:
+                chat = [{"role": "user", "content": chat}]
         prompt = apply_chat_template(chat, tokenize=False, add_generation_prompt=True)
     else:
         prompt = data[input_key]
@@ -44,6 +70,8 @@ class PromptDataset(Dataset):
         input_key = getattr(self.strategy.args, "input_key", None)
         label_key = getattr(self.strategy.args, "label_key", None)
         apply_chat_template = getattr(self.strategy.args, "apply_chat_template", False)
+        system_prompt = getattr(self.strategy.args, "system_prompt", None)
+        image_key = getattr(self.strategy.args, "image_key", None)
 
         if apply_chat_template:
             apply_chat_template = self.tokenizer.apply_chat_template
@@ -51,7 +79,15 @@ class PromptDataset(Dataset):
         self.prompts = []
         self.labels = []
         for data in tqdm(dataset, desc="Preprocessing data", disable=not self.strategy.is_rank_0()):
-            prompt, label = preprocess_data(data, input_template, input_key, label_key, apply_chat_template)
+            prompt, label = preprocess_data(
+                data,
+                input_template,
+                input_key,
+                label_key,
+                apply_chat_template,
+                system_prompt,
+                image_key,
+            )
             self.prompts.append(prompt)
             self.labels.append(label)
 
