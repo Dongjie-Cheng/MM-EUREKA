@@ -407,6 +407,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--apply_chat_template", action="store_true", default=False, help="Use HF tokenizer chat template"
     )
+    parser.add_argument("--system_prompt", type=str, default=None, help="System prompt for chat template inputs")
+    parser.add_argument("--image_key", type=str, default=None, help="Image key for multimodal chat template inputs")
 
     # wandb parameters
     parser.add_argument("--use_wandb", type=str, default=None)
